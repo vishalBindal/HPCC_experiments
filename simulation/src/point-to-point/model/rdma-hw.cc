@@ -220,6 +220,9 @@ Ptr<RdmaQueuePair> RdmaHw::GetQp(uint32_t dip, uint16_t sport, uint16_t pg){
 		return it->second;
 	return NULL;
 }
+
+#define INIT_CONFIG 1
+
 void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Address dip, uint16_t sport, uint16_t dport, uint32_t win, uint64_t baseRtt, Callback<void> notifyAppFinish){
 	// create qp
 	Ptr<RdmaQueuePair> qp = CreateObject<RdmaQueuePair>(pg, sip, dip, sport, dport);
@@ -237,12 +240,99 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 
 	// set init variables
 	DataRate m_bps = m_nic[nic_idx].dev->GetDataRate();
-	qp->m_rate = m_bps;
+	// qp->m_rate = m_bps;
+
+	
+	if(INIT_CONFIG==1)
+	{
+		qp->m_rate = m_bps;
+	}
+	else if(INIT_CONFIG==2)
+	{
+		if(dport==500) // H1->H2
+			qp->m_rate = DataRate(m_bps.GetBitRate()/3);
+		else if(dport==501) // H1->H5
+			qp->m_rate = DataRate(m_bps.GetBitRate()/2);
+		else if(dport==502) // H3->H5
+			qp->m_rate = DataRate(m_bps.GetBitRate()/2);
+		else if(dport==503) // H3->H2
+			qp->m_rate = DataRate(m_bps.GetBitRate()/3);
+		else // H7->H2
+			qp->m_rate = DataRate(m_bps.GetBitRate()/3);
+	}
+	else if(INIT_CONFIG==3)
+	{
+		if(dport==500) // H1->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*11/10);
+		else if(dport==501) // H1->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*11/10);
+		else if(dport==502) // H3->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*11/10);
+		else if(dport==503) // H3->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*11/10);
+		else // H7->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*11/10);
+	}
+	else if(INIT_CONFIG==4)
+	{
+		if(dport==500) // H1->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*9/10);
+		else if(dport==501) // H1->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*9/10);
+		else if(dport==502) // H3->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*9/10);
+		else if(dport==503) // H3->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*9/10);
+		else // H7->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*9/10);
+	}
+	else if(INIT_CONFIG==5)
+	{
+		if(dport==500) // H1->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*12/10);
+		else if(dport==501) // H1->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*12/10);
+		else if(dport==502) // H3->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*12/10);
+		else if(dport==503) // H3->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*12/10);
+		else // H7->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*12/10);
+	}
+	else if(INIT_CONFIG==6)
+	{
+		if(dport==500) // H1->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*8/10);
+		else if(dport==501) // H1->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*8/10);
+		else if(dport==502) // H3->H5
+			qp->m_rate = DataRate((m_bps.GetBitRate()/2)*8/10);
+		else if(dport==503) // H3->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*8/10);
+		else // H7->H2
+			qp->m_rate = DataRate((m_bps.GetBitRate()/3)*8/10);
+	}
+
 	qp->m_max_rate = m_bps;
+
+	if(INIT_CONFIG == 7)
+	{
+		qp->m_rate = DataRate(m_bps.GetBitRate()*40);
+		qp->m_max_rate = qp->m_rate;
+	}
+
 	if (m_cc_mode == 1){
 		qp->mlx.m_targetRate = m_bps;
 	}else if (m_cc_mode == 3){
-		qp->hp.m_curRate = m_bps;
+		if(INIT_CONFIG==1)
+		{
+			qp->hp.m_curRate = m_bps;
+		}
+		else
+		{
+			qp->hp.m_curRate = qp->m_rate;
+		}
+
 		if (m_multipleRate){
 			for (uint32_t i = 0; i < IntHeader::maxHop; i++)
 				qp->hp.hopState[i].Rc = m_bps;
@@ -611,7 +701,7 @@ void RdmaHw::ChangeRate(Ptr<RdmaQueuePair> qp, DataRate new_rate){
 	qp->m_rate = new_rate;
 }
 
-#define PRINT_LOG 0
+#define PRINT_LOG 1
 /******************************
  * Mellanox's version of DCQCN
  *****************************/
@@ -892,6 +982,7 @@ void RdmaHw::UpdateRateHp(Ptr<RdmaQueuePair> qp, Ptr<Packet> p, CustomHeader &ch
 			if (!fast_react){
 				if (updated_any){
 					qp->hp.m_curRate = new_rate;
+					
 					qp->hp.m_incStage = new_incStage;
 				}
 				if (m_multipleRate){

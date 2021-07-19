@@ -76,9 +76,9 @@ uint32_t link_down_A = 0, link_down_B = 0;
 
 uint32_t enable_trace = 1;
 
-uint32_t buffer_size = 16;
+double buffer_size = 16;
 
-uint32_t qlen_dump_interval = 100000000, qlen_mon_interval = 100;
+uint32_t qlen_dump_interval = 1000000, qlen_mon_interval = 100;
 uint64_t qlen_mon_start = 2000000000, qlen_mon_end = 2100000000;
 string qlen_mon_file;
 
@@ -844,7 +844,7 @@ int main(int argc, char *argv[])
 				}
 			}
 			sw->m_mmu->ConfigNPort(sw->GetNDevices()-1);
-			sw->m_mmu->ConfigBufferSize(buffer_size* 1024 * 1024);
+			sw->m_mmu->ConfigBufferSize(uint32_t(buffer_size* 1024 * 1024));
 			sw->m_mmu->node_id = sw->GetId();
 		}
 	}
